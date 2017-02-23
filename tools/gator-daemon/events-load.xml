@@ -1,0 +1,3 @@
+  <category name="MT6732Load">
+    	<event counter="load_cnt0" title="MT6732 Load" name="GPU Load" class="absolute" display="average" average_selection="yes" percentage="yes" description="Frequency setting of GPU Load"/>
+  </category>

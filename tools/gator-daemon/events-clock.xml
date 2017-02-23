@@ -1,0 +1,4 @@
+  <category name="MT6732Clock">
+    	<event counter="clock_cnt0" title="MT6732 Clock" name="EMI Memory Clock" display="maximum" class="absolute" units="Hz" description="Frequency setting of the Memory"/>
+    	<event counter="clock_cnt1" title="MT6732 Clock" name="GPU Clock" display="maximum" class="absolute" units="Hz" description="Frequency setting of the GPU Clock"/>
+  </category>
