@@ -314,12 +314,7 @@ _mali_osk_errcode_t mali_mem_os_get_table_page(u32 *phys, mali_io_address *mappi
 			ret = _MALI_OSK_ERR_OK;
 		}
 	}
-	
-	if (ret != _MALI_OSK_ERR_OK)
-   {
-      MALI_DEBUG_PRINT(2, ("os_get_table_page fail: ret=%d, *mapping=%x\n", ret,  *mapping));
-      MALI_DEBUG_PRINT(2, ("os_get_table_page fail: mali_mem_page_table_page_pool.count=%x\n", mali_mem_page_table_page_pool.count));
-   }
+
 	return ret;
 }
 

@@ -53,7 +53,7 @@ MALI_STATIC_INLINE void mali_dma_pool_free(mali_dma_pool pool, void* virt_addr, 
 }
 
 
-#if defined(MALI_ENABLE_CPU_CYCLES)
+#if MALI_ENABLE_CPU_CYCLES
 /* Reads out the clock cycle performance counter of the current cpu.
    It is useful for cost-free (2 cycle) measuring of the time spent
    in a code path. Sample before and after, the diff number of cycles.

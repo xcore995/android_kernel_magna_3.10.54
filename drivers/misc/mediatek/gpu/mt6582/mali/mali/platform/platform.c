@@ -94,13 +94,13 @@ static struct platform_device mali_gpu_device =
 	.dev.type = &mali_gpu_device_device_type /// We should probably use the pm_domain instead of type on newer kernels
 };
 
-extern unsigned int get_max_DRAM_size (void);
+/// extern unsigned int get_max_DRAM_size (void);
 int mali_platform_device_register(void)
 {
     int err = -1;
 
     MALI_DEBUG_PRINT(1, ("%s\n", __FUNCTION__));
-    mali_gpu_data.shared_mem_size = get_max_DRAM_size();
+    /// mali_gpu_data.shared_mem_size = get_max_DRAM_size();
 
     err = platform_device_register(&mali_gpu_device);
             

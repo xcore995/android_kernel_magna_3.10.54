@@ -160,7 +160,6 @@ s32 mali_sync_fence_fd_alloc(struct sync_fence *sync_fence)
 	fd = get_unused_fd();
 	if (fd < 0) {
 		sync_fence_put(sync_fence);
-		MALI_DEBUG_PRINT(1, ("get_unused_fd() got fd < 0, fd=%x\n", fd));
 		return -1;
 	}
 	sync_fence_install(sync_fence, fd);

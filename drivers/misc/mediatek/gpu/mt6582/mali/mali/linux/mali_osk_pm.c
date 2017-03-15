@@ -206,8 +206,7 @@ mali_bool _mali_osk_pm_dev_ref_add_no_power_on(void)
 	MALI_DEBUG_PRINT(4, ("Mali OSK PM: No-power ref taken (%u)\n", _mali_osk_atomic_read(&mali_pm_ref_count)));
 	return ref > 0 ? MALI_TRUE : MALI_FALSE;
 #else
-   _mali_osk_mutex_wait(pm_lock);     
-	return _mali_osk_atomic_read(&mali_suspend_called) == 0 ? MALI_TRUE : MALI_FALSE;
+	return MALI_TRUE;
 #endif
 }
 
@@ -222,8 +221,6 @@ void _mali_osk_pm_dev_ref_dec_no_power_on(void)
 	pm_runtime_put(&(mali_platform_device->dev));
 #endif
 	MALI_DEBUG_PRINT(4, ("Mali OSK PM: No-power ref released (%u)\n", _mali_osk_atomic_read(&mali_pm_ref_count)));
-#else
-   _mali_osk_mutex_signal(pm_lock);	
 #endif
 }
 

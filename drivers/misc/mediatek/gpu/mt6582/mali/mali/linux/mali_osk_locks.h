@@ -22,7 +22,6 @@
 #include <linux/slab.h>
 
 #include "mali_osk_types.h"
-#include "mali_kernel_common.h"
 
 #ifdef _cplusplus
 extern "C" {
@@ -103,11 +102,6 @@ extern "C" {
 			return NULL;
 		}
 		spin_lock_init(&lock->spinlock);
-				   
-		#ifdef CONFIG_PROVE_LOCKING
-         lockdep_skip_validate(&lock->spinlock.dep_map);
-		#endif
-		
 		_mali_osk_locks_debug_init((struct _mali_osk_lock_debug_s *)lock, flags, order);
 		return lock;
 	}
@@ -152,11 +146,6 @@ extern "C" {
 
 		lock->flags = 0;
 		spin_lock_init(&lock->spinlock);
-		
-		#ifdef CONFIG_PROVE_LOCKING
-         lockdep_skip_validate(&lock->spinlock.dep_map);
-		#endif
-				
 		_mali_osk_locks_debug_init((struct _mali_osk_lock_debug_s *)lock, flags, order);
 		return lock;
 	}

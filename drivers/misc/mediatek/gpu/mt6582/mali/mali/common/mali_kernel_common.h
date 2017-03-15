@@ -11,7 +11,6 @@
 #ifndef __MALI_KERNEL_COMMON_H__
 #define __MALI_KERNEL_COMMON_H__
 
-#include "mtk_mali_kernel.h" /*Mediatek custom routine for Mali*/
 #include "mali_osk.h"
 
 /* Make sure debug is defined when it should be */
@@ -112,8 +111,7 @@
 	MALI_PRINTF(("Mali: ERR: %s\n" ,__FILE__)); \
 	MALI_PRINTF(("           %s()%4d\n           ", __FUNCTION__, __LINE__)) ; \
 	MALI_PRINTF(args); \
-	MALI_PRINTF(("\n"));   \
-	MTKMALI_DumpRegister();\
+	MALI_PRINTF(("\n")); \
 	} while(0)
 
 #define MALI_PRINT(args) do{ \

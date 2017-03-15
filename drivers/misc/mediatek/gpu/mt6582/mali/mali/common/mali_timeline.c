@@ -21,49 +21,7 @@
 static mali_scheduler_mask mali_timeline_system_release_waiter(struct mali_timeline_system *system,
         struct mali_timeline_waiter *waiter);
 
-
 #if defined(CONFIG_SYNC)
-
-/*
-   Older versions of Linux, before 3.5, doesn't support fput() in interrupt
-   context. For those older kernels, allocate a list object and put the
-   fence object on that and defer the call to sync_fence_put() to a
-   workqueue.
-*/
-#include <linux/version.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,5,0)
-#include <linux/llist.h>
-#include <linux/workqueue.h>
-
-struct mali_deferred_fence_put_entry {
-	struct llist_node list;
-	struct sync_fence *fence;
-};
-
-static LLIST_HEAD(mali_timeline_sync_fence_to_free_list);
-
-static void put_sync_fences(struct work_struct *ignore)
-{
-	struct llist_node *list;
-
-	list = llist_del_all(&mali_timeline_sync_fence_to_free_list);
-
-	while(list)
-	{
-		struct mali_deferred_fence_put_entry *o;
-
-		o = llist_entry(list, struct mali_deferred_fence_put_entry, list);
-		list = llist_next(list);
-
-		sync_fence_put(o->fence);
-		kfree(o);
-	}
-}
-
-static DECLARE_DELAYED_WORK(delayed_sync_fence_put, put_sync_fences);
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3,5,0) */
-
-
 /* Callback that is called when a sync fence a tracker is waiting on is signaled. */
 static void mali_timeline_sync_fence_callback(struct sync_fence *sync_fence, struct sync_fence_waiter *sync_fence_waiter)
 {
@@ -105,22 +63,8 @@ static void mali_timeline_sync_fence_callback(struct sync_fence *sync_fence, str
 	}
 
 	mali_spinlock_reentrant_signal(system->spinlock, tid);
-	
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,5,0)   
-	{
-		struct mali_deferred_fence_put_entry *obj;
 
-		obj = kzalloc(sizeof(struct mali_deferred_fence_put_entry), GFP_ATOMIC);
-		if (obj) {
-			obj->fence = sync_fence;
-			if (llist_add(&obj->list, &mali_timeline_sync_fence_to_free_list)) {
-				schedule_delayed_work(&delayed_sync_fence_put, 0);
-			}
-		}
-	}
-#else/* LINUX_VERSION_CODE < KERNEL_VERSION(3,5,0) */	   
-   sync_fence_put(sync_fence);
-#endif
+	sync_fence_put(sync_fence);
 
 	if (!is_aborting) {
 		mali_scheduler_schedule_from_mask(schedule_mask, MALI_TRUE);
