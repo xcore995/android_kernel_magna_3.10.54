@@ -9,7 +9,6 @@
 #include <linux/slab.h>
 #include <linux/time.h>
 #include <linux/irqnr.h>
-#include <linux/vmalloc.h>
 #include <asm/cputime.h>
 #include <linux/tick.h>
 
@@ -131,7 +130,7 @@ static int show_stat(struct seq_file *p, void *v)
 	seq_put_decimal_ull(p, ' ', cputime64_to_clock_t(guest_nice));
 	seq_putc(p, '\n');
 
-	for_each_online_cpu(i) {
+	for_each_present_cpu(i) {
 		/* Copy values here to work around gcc-2.95.3, gcc-2.96 */
 		user = kcpustat_cpu(i).cpustat[CPUTIME_USER];
 		nice = kcpustat_cpu(i).cpustat[CPUTIME_NICE];
@@ -194,10 +193,9 @@ static int stat_open(struct inode *inode, struct file *file)
 	size += 2 * nr_irqs;
 
 	/* don't ask for more than the kmalloc() max size */
-	//if (size > KMALLOC_MAX_SIZE)
-	//	size = KMALLOC_MAX_SIZE;
-	//buf = kmalloc(size, GFP_KERNEL);
-	buf = vmalloc(size);
+	if (size > KMALLOC_MAX_SIZE)
+		size = KMALLOC_MAX_SIZE;
+	buf = kmalloc(size, GFP_KERNEL);
 	if (!buf)
 		return -ENOMEM;
 
@@ -205,11 +203,9 @@ static int stat_open(struct inode *inode, struct file *file)
 	if (!res) {
 		m = file->private_data;
 		m->buf = buf;
-        //m->size = ksize(buf);
-		m->size = size;
+		m->size = ksize(buf);
 	} else
-		//kfree(buf);
-		vfree(buf);
+		kfree(buf);
 	return res;
 }
 

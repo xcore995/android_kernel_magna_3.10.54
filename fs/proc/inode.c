@@ -23,10 +23,15 @@
 #include <linux/slab.h>
 #include <linux/mount.h>
 #include <linux/magic.h>
+#include <linux/namei.h>
 
 #include <asm/uaccess.h>
 
 #include "internal.h"
+
+#include <linux/mempool.h>
+#define PROC_INODE_POOLSIZE (100)
+static mempool_t	*proc_inode_cache_pool __read_mostly;
 
 static void proc_evict_inode(struct inode *inode)
 {
@@ -64,7 +69,10 @@ static struct inode *proc_alloc_inode(struct super_block *sb)
 	struct proc_inode *ei;
 	struct inode *inode;
 
-	ei = (struct proc_inode *)kmem_cache_alloc(proc_inode_cachep, GFP_KERNEL);
+	if (proc_inode_cache_pool)
+		ei = (struct proc_inode *)mempool_alloc(proc_inode_cache_pool, GFP_KERNEL);
+	else
+		ei = (struct proc_inode *)kmem_cache_alloc(proc_inode_cachep, GFP_KERNEL);
 	if (!ei)
 		return NULL;
 	ei->pid = NULL;
@@ -83,7 +91,11 @@ static struct inode *proc_alloc_inode(struct super_block *sb)
 static void proc_i_callback(struct rcu_head *head)
 {
 	struct inode *inode = container_of(head, struct inode, i_rcu);
-	kmem_cache_free(proc_inode_cachep, PROC_I(inode));
+
+	if (proc_inode_cache_pool)
+		mempool_free(PROC_I(inode), proc_inode_cache_pool);
+	else
+		kmem_cache_free(proc_inode_cachep, PROC_I(inode));
 }
 
 static void proc_destroy_inode(struct inode *inode)
@@ -105,6 +117,11 @@ void __init proc_init_inodecache(void)
 					     0, (SLAB_RECLAIM_ACCOUNT|
 						SLAB_MEM_SPREAD|SLAB_PANIC),
 					     init_once);
+
+	proc_inode_cache_pool = mempool_create(PROC_INODE_POOLSIZE,
+			mempool_alloc_slab_noswap, mempool_free_slab,
+			(void *)proc_inode_cachep);
+	return;
 }
 
 static int proc_show_options(struct seq_file *seq, struct dentry *root)
@@ -372,6 +389,26 @@ static const struct file_operations proc_reg_file_ops_no_compat = {
 	.release	= proc_reg_release,
 };
 #endif
+
+static void *proc_follow_link(struct dentry *dentry, struct nameidata *nd)
+{
+	struct proc_dir_entry *pde = PDE(dentry->d_inode);
+	if (unlikely(!use_pde(pde)))
+		return ERR_PTR(-EINVAL);
+	nd_set_link(nd, pde->data);
+	return pde;
+}
+
+static void proc_put_link(struct dentry *dentry, struct nameidata *nd, void *p)
+{
+	unuse_pde(p);
+}
+
+const struct inode_operations proc_link_inode_operations = {
+	.readlink	= generic_readlink,
+	.follow_link	= proc_follow_link,
+	.put_link	= proc_put_link,
+};
 
 struct inode *proc_get_inode(struct super_block *sb, struct proc_dir_entry *de)
 {

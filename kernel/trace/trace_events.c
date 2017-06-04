@@ -256,9 +256,6 @@ static int __ftrace_event_enable_disable(struct ftrace_event_file *file,
 	int ret = 0;
 	int disable;
 
-    if(call->name && ((file->flags & FTRACE_EVENT_FL_ENABLED) ^ enable))
-        printk(KERN_INFO "[ftrace]event '%s' is %s\n", call->name, enable?"enabled":"disabled");
-
 	switch (enable) {
 	case 0:
 		/*
@@ -430,7 +427,7 @@ static void remove_event_file_dir(struct ftrace_event_file *file)
 
 	if (dir) {
 		spin_lock(&dir->d_lock);	/* probably unneeded */
-		list_for_each_entry(child, &dir->d_subdirs, d_u.d_child) {
+		list_for_each_entry(child, &dir->d_subdirs, d_child) {
 			if (child->d_inode)	/* probably unneeded */
 				child->d_inode->i_private = NULL;
 		}
