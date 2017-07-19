@@ -43,7 +43,7 @@
 /****************************************************************************
 * Variables
 ****************************************************************************/
-
+static int lpwg_status = 0;
 struct touch_device_driver* touch_device_func;
 struct workqueue_struct* touch_wq;
 
@@ -225,6 +225,9 @@ static void WqTouchIrqHandler(struct work_struct *work_irq)
 	{
 		/* Send Proper Event to CFW */
 		send_uevent_lpwg(pDriverData->client, LPWG_DOUBLE_TAP);
+		input_report_key(pDriverData->input_dev, KEY_WAKEUP, BUTTON_PRESSED);
+ 		input_report_key(pDriverData->input_dev, KEY_WAKEUP, BUTTON_RELEASED);
+ 		input_sync(pDriverData->input_dev);
 	}
 	else if( pDriverData->readData.type == T_DATA_KNOCK_CODE )
 	{
@@ -599,6 +602,87 @@ static ssize_t store_lpwg_data(struct i2c_client *client, const char *buf, size_
 	return count;
 }
 
+static ssize_t show_lpwg_notify(struct i2c_client *client, char *buf)
+ {
+ 	return sprintf(buf, "%d\n", lpwg_status);
+ }
+
+static ssize_t show_tap2wake(struct i2c_client *client, char *buf)
+{
+	return sprintf(buf, "%d\n", lpwg_status);
+}
+
+/* Sysfs - tap2wake (double tap to wake gesture)
+ *
+ * Read:
+ * 1 - enabled
+ * 0 - disabled
+ *
+ * Write:
+ * 1 - enable
+ * !=1 - disable
+ *
+*/
+static ssize_t store_tap2wake(struct i2c_client *client, const char *buf, size_t count)
+{
+struct lge_touch_data *pDriverData = i2c_get_clientdata(client);
+
+	int result = LGTC_SUCCESS;
+	LGTcLpwgSetting newLpwgSetting = {0};
+	LGTcLpwgSetting *pCurrLpwgSetting = &pDriverData->lpwgSetting;
+	E_TouchReportMode reportMode = NUM_OF_T_REPORT_MODE;
+
+	int type = 1;
+	int value[4] = {0};
+
+	/* Get command and parameter from buffer */
+	sscanf(buf, "%d", &value[0]);
+	lpwg_status = (value[0]) ? 1 : 0;
+	mutex_lock(pMutexTouch);
+	wake_lock ( pWakeLockTouch );
+
+	/* Copy current setting to temporal variable ( to overwrite the updated value ) */
+	memcpy(&newLpwgSetting, pCurrLpwgSetting, sizeof(LGTcLpwgSetting));
+
+	/* Verify and Make a updated new LPWG Settings */
+	result = UpdateLpwgSetting(&newLpwgSetting, type, value);
+
+
+
+
+		reportMode = T_REPORT_KNOCK_ON_ONLY;
+
+	if( pDriverData->reportMode != reportMode )
+	{
+		pDriverData->reportMode = reportMode;
+
+		#if defined ( LPWG_ENABLE_ON_SUSPEND ) /* JDI In-Cell Only */
+
+		if( pDriverData->isSuspend == LGTC_TRUE )
+		{
+			touch_device_func->lpwg(pDriverData->client, reportMode, &newLpwgSetting);
+		}
+
+		#else
+
+		touch_device_func->lpwg(pDriverData->client, reportMode, &newLpwgSetting);
+
+		#endif
+	}
+
+	/* Copy new LPWG settings to current setting */
+	memcpy(pCurrLpwgSetting, &newLpwgSetting, sizeof(LGTcLpwgSetting));
+
+
+
+	wake_unlock ( pWakeLockTouch );
+	mutex_unlock(pMutexTouch);
+
+	return count;
+}
+
+
+
 
 //==========================================================
 // LPWG Command ( Setting ) will be got from this function
@@ -618,7 +702,7 @@ static ssize_t store_lpwg_notify(struct i2c_client *client, const char *buf, siz
 	/* Get command and parameter from buffer */
 	sscanf(buf, "%d %d %d %d %d", &type, &value[0], &value[1], &value[2], &value[3]);
 	LGTC_DBG("LPWG CMD : Type[%d] value[%d %d %d %d]\n", type, value[0], value[1], value[2], value[3]);
-
+	lpwg_status = (value[0]) ? 1 : 0;
 	mutex_lock(pMutexTouch);
 	wake_lock ( pWakeLockTouch );
 
@@ -746,7 +830,8 @@ static LGE_TOUCH_ATTR(ic_rw, S_IRUGO | S_IWUSR, show_ic_rw, store_ic_rw);
 static LGE_TOUCH_ATTR(fw_upgrade, S_IRUGO | S_IWUSR, NULL, store_upgrade);
 static LGE_TOUCH_ATTR(rewrite_bin_fw, S_IRUGO | S_IWUSR, NULL, store_rewrite_bin_fw);
 static LGE_TOUCH_ATTR(lpwg_data, S_IRUGO | S_IWUSR, show_lpwg_data, store_lpwg_data);
-static LGE_TOUCH_ATTR(lpwg_notify, S_IRUGO | S_IWUSR, NULL, store_lpwg_notify);
+static LGE_TOUCH_ATTR(lpwg_notify, S_IRUGO | S_IWUSR, show_lpwg_notify, store_lpwg_notify);
+static LGE_TOUCH_ATTR(tap2wake, S_IRUGO | S_IWUSR, show_tap2wake, store_tap2wake);
 static LGE_TOUCH_ATTR(sd, S_IRUGO | S_IWUSR, show_sd_info, NULL);
 static LGE_TOUCH_ATTR(knock_on_type, S_IRUGO | S_IWUSR, show_knock_on_type, NULL);
 
@@ -757,6 +842,7 @@ static struct attribute *lge_touch_attribute_list[] = {
 	&lge_touch_attr_rewrite_bin_fw.attr,
 	&lge_touch_attr_lpwg_data.attr,
 	&lge_touch_attr_lpwg_notify.attr,
+	&lge_touch_attr_tap2wake.attr,
 	&lge_touch_attr_sd.attr,
 	&lge_touch_attr_knock_on_type.attr,
 	NULL,
@@ -882,6 +968,8 @@ static int register_input_dev(struct lge_touch_data *pDriverData)
 
 	set_bit(EV_SYN, pDriverData->input_dev->evbit);
 	set_bit(EV_ABS, pDriverData->input_dev->evbit);
+	set_bit(EV_KEY, pDriverData->input_dev->evbit);
+ 	set_bit(KEY_WAKEUP, pDriverData->input_dev->keybit);
 	set_bit(INPUT_PROP_DIRECT, pDriverData->input_dev->propbit);
 
 	input_set_abs_params(pDriverData->input_dev, ABS_MT_POSITION_X, 0, pDriverData->mConfig.max_x, 0, 0);

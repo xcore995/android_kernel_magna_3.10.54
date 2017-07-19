@@ -178,7 +178,8 @@ int TouchGetModelConfig(struct lge_touch_data *pDriverData)
 		#if defined(TARGET_MT6582_Y70) || defined(TARGET_MT6582_P1S3G)
 		strcpy(pConfig->fw_image,"synaptics/y70/PLG456-V1.02-PR1741017_DS5.2.12.0.1013_40047182.img");
 		#elif defined(TARGET_MT6582_Y90)
-		strcpy(pConfig->fw_image,"synaptics/y90/PLG465-V0.01-PR1741017-DS5.2.12.0.1013-40050181.img");
+		strcpy(pConfig->fw_image,"synaptics/y90/PLG465-V1.11-PR1815155-DS5.2.12.0.13-4005018B.img");
+											    
 		#elif defined(TARGET_MT6732_C90)
 		strcpy(pConfig->fw_image,"synaptics/c90/PLG464-V1.01-PR1741017-DS5.2.12.0.1013-40050181.img");
 		#endif
