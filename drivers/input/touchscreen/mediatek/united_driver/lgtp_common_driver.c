@@ -9,7 +9,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- *    File  	: lgtp_common_driver.c
+ *    File  	: lgtp_common_driver.c 
  *    Author(s)   : Branden You < branden.you@lge.com >
  *    Description : 
  *
@@ -647,9 +647,13 @@ struct lge_touch_data *pDriverData = i2c_get_clientdata(client);
 	/* Verify and Make a updated new LPWG Settings */
 	result = UpdateLpwgSetting(&newLpwgSetting, type, value);
 
-
-
-
+    newLpwgSetting.mode = (value[0]) ? 1 : 0;
+        
+    if( newLpwgSetting.mode == 0 )
+		{
+			reportMode = T_REPORT_OFF;
+		}
+    else
 		reportMode = T_REPORT_KNOCK_ON_ONLY;
 
 	if( pDriverData->reportMode != reportMode )
@@ -1318,7 +1322,7 @@ static int __init touch_init(void)
 	}
 	#endif
 
-	touch_device_func = &synaptics_ts_driver; /* 이원화 등을 위해 고려가 필요함 */
+	touch_device_func = &synaptics_ts_driver; /* ?結?화 ???? ???? ?????? ?却??? */
 
 	touch_wq = create_singlethread_workqueue("touch_wq");
 	if( touch_wq == NULL )
