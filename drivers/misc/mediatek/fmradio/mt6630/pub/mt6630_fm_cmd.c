@@ -307,8 +307,6 @@ fm_s32 mt6630_pwrup_digital_init(fm_u8 *buf, fm_s32 buf_size)
 	buf[1] = FM_ENABLE_OPCODE;
 	pkt_size = 4;
 
-	//update FM ADPLL fast tracking mode gain
-	pkt_size += fm_bop_modify(0xF, 0xF800, 0x0455, &buf[pkt_size], buf_size - pkt_size);
 	/* F1.4    Set appropriate interrupt mask behavior as desired(RX) */
 	/* pkt_size += fm_bop_write(0x6A, 0x0021, &buf[pkt_size], buf_size - pkt_size);//wr 6A 0021 */
 	pkt_size += fm_bop_write(0x6B, 0x0021, &buf[pkt_size], buf_size - pkt_size);	/* wr 6B 0021 */

@@ -27,12 +27,10 @@
 
 #include "fm_main.h"
 #include "fm_config.h"
-#include "fm_err.h"
 /* #include "fm_cust_cfg.h" */
-#include "osal_typedef.h"
 #include "wmt_exp.h"
 /* fm main data structure */
-static struct fm *g_fm_struct = NULL;
+static struct fm *g_fm_struct;
 /* we must get low level interface first, when add a new chip, the main effort is this interface */
 static struct fm_lowlevel_ops fm_low_ops;
 #ifdef MT6620_FM
@@ -66,11 +64,6 @@ static struct fm_timer *fm_timer_sys;
 
 static fm_bool scan_stop_flag = fm_false;
 static struct fm_gps_rtc_info gps_rtc_info;
-volatile static bool g_fm_stat[3] = {
-	fm_false,	//RX power
-	fm_false,	//TX power
-	fm_false,	//TX scan
-};
 
 /* RDS reset related functions */
 static fm_u16 fm_cur_freq_get(void);
@@ -151,50 +144,6 @@ enum fm_pwr_state fm_pwr_state_set(struct fm *fmp, enum fm_pwr_state sta)
 		WCN_DBG(FM_ERR | MAIN, "pwr state set para error, %d\n", sta);
 		return FM_PWR_MAX;
 	}
-}
-
-fm_s32 fm_set_stat(struct fm *fmp, int which, bool stat)
-{
-    fm_s32 ret = 0;
-    FMR_ASSERT(fmp);
-
-    if (FM_LOCK(fm_ops_lock)) return (-FM_ELOCK);
-
-	if(which < (sizeof(g_fm_stat)/sizeof(g_fm_stat[0])))
-	{
-		g_fm_stat[which] = stat;
-        WCN_DBG(FM_DBG | MAIN, "fm set stat object=%d, stat=%d\n", which, stat);
-	}
-	else
-	{
-		ret = -1;
-		WCN_DBG(FM_ERR | MAIN, "fm set stat error, object=%d, stat=%d\n", which, stat);
-	}
-	
-    FM_UNLOCK(fm_ops_lock);
-	return ret;
-}
-
-fm_s32 fm_get_stat(struct fm *fmp, int which, bool *stat)
-{	
-    fm_s32 ret = 0;
-    FMR_ASSERT(fmp);
-    FMR_ASSERT(stat);	
-    if (FM_LOCK(fm_ops_lock)) return (-FM_ELOCK);
-
-	if(which < (sizeof(g_fm_stat)/sizeof(g_fm_stat[0])))
-	{
-		*stat = g_fm_stat[which];		
-        WCN_DBG(FM_DBG | MAIN, "fm get stat object=%d, stat=%d\n", which, *stat);
-	}
-	else
-	{
-		ret = -1;
-		WCN_DBG(FM_ERR | MAIN, "fm get stat error, object=%d\n", which);
-	}
-	
-    FM_UNLOCK(fm_ops_lock);	
-	return ret;
 }
 
 static volatile fm_s32 subsys_rst_state = FM_SUBSYS_RST_OFF;
@@ -280,7 +229,7 @@ fm_s32 fm_open(struct fm *fmp)
 			WCN_DBG(FM_NTC | MAIN, "get 6620 low ops\n");
 #endif
 		} else if ((chipid == 0x6572) || (chipid == 0x6582) || (chipid == 0x6592)
-			   || (chipid == 0x8127) || (chipid == 0x6571)||(chipid == 0x6752)) {
+			   || (chipid == 0x8127) || (chipid == 0x6571)) {
 #ifdef MT6627_FM
 			fm_low_ops = MT6627fm_low_ops;
 			fmp->chip_id = 0x6627;
@@ -419,11 +368,6 @@ fm_s32 fm_powerup(struct fm *fm, struct fm_tune_parm *parm)
 	FMR_ASSERT(fm_low_ops.bi.pwron);
 	FMR_ASSERT(fm_low_ops.bi.pwrupseq);
 
-/*                                                                       */
-#if defined(MT6627_FM) 
-	MT6627fm_cust_config_print(&mt6627_fm_config);
-#endif
-/*                                                                       */
 	if (FM_LOCK(fm_ops_lock))
 		return (-FM_ELOCK);
 
@@ -531,8 +475,6 @@ fm_s32 fm_powerup_tx(struct fm *fm, struct fm_tune_parm *parm)
 
 	if (ret) {
 		parm->err = FM_FAILED;
-		fm_pwr_state_set(fm, FM_PWR_OFF);
-		WCN_DBG(FM_ERR | MAIN,"FM pwr up Tx fail!\n"); 
 	} else {
 		parm->err = FM_SUCCESS;
 	}
@@ -1351,11 +1293,7 @@ fm_s32 fm_ana_switch(struct fm *fm, fm_s32 antenna)
 
 	WCN_DBG(FM_DBG | MAIN, "Switching ana to %s\n", antenna ? "short" : "long");
 	fm->ana_type = antenna;
-
-	if((FM_PWR_RX_ON == fm_pwr_state_get(fm)) || (FM_PWR_TX_ON == fm_pwr_state_get(fm)))
-	{
-		ret = fm_low_ops.bi.anaswitch(antenna);
-	}
+	ret = fm_low_ops.bi.anaswitch(antenna);
 
 	if (ret) {
 		WCN_DBG(FM_ALT | MAIN, "Switch ana Failed\n");
@@ -1879,11 +1817,7 @@ fm_s32 fm_tune(struct fm *fm, struct fm_tune_parm *parm)
 		goto out;
 	}
 /* fm_low_ops.bi.mute(fm_true); */
-	ret = fm_low_ops.bi.rampdown();
-	if (ret) {
-		WCN_DBG(FM_ALT | MAIN, "FM ramp down failed\n");
-		goto out;
-	}		
+	fm_low_ops.bi.rampdown();
 
 	if (fm_cur_freq_get() != parm->freq) {
 		fm_memset(fm->pstRDSData, 0, sizeof(rds_t));
@@ -1925,10 +1859,10 @@ fm_s32 fm_tune(struct fm *fm, struct fm_tune_parm *parm)
 	fm_op_state_set(fm, FM_STA_TUNE);
 	WCN_DBG(FM_ALT | MAIN, "tuning to %d\n", parm->freq);
 
-	if (fm_true != fm_low_ops.bi.setfreq(parm->freq)) {
+	if (fm_false == fm_low_ops.bi.setfreq(parm->freq)) {
 		parm->err = FM_TUNE_FAILED;
 		WCN_DBG(FM_ALT | MAIN, "FM tune failed\n");
-		ret = -FM_EFW;
+		ret = -EPERM;
 	}
 	/* fm_low_ops.bi.mute(fm_false);//open for dbg */
 	fm_op_state_set(fm, FM_STA_PLAY);
@@ -1937,30 +1871,7 @@ fm_s32 fm_tune(struct fm *fm, struct fm_tune_parm *parm)
 	return ret;
 }
 
-fm_s32 fm_read_freq_info(struct fm *fm, fm_u16 *freq)
-{
-    fm_u16 tmp_freq;	
-	fm_s32 ret = 0;
-
-    if (fm_pwr_state_get(fm) == FM_PWR_OFF) {
-		return -EPERM;
-    }
-    FMR_ASSERT(fm_low_ops.bi.getfreq);
-    if (FM_LOCK(fm_ops_lock)) return (-FM_ELOCK);
-
-    ret = fm_low_ops.bi.getfreq(&tmp_freq);
-	if(ret){
-        WCN_DBG(FM_ALT | MAIN, "FM get freq failed\n");
-        return ret;
-	}
-    *freq = (fm_u32)tmp_freq;
-
-    FM_UNLOCK(fm_ops_lock);
-    return 0;
-
-}
-
-//cqi log tool entry
+/* cqi log tool entry */
 fm_s32 fm_cqi_log(void)
 {
 	fm_s32 ret = 0;
@@ -2436,17 +2347,12 @@ void fm_subsys_reset_work_func(unsigned long data)
 		WCN_DBG(FM_ALT | MAIN, "chip off no need do recover\n");
 		goto out;
 	}
-
-	/* if whole chip reset, wmt will clear fm-on-flag, and firmware turn fm to off status, so no need turn fm off again */
-	if (g_fm_struct->wholechiprst == fm_false) {
-		fm_low_ops.bi.pwrdownseq();
-		/* subsystem power off */
-		if (fm_low_ops.bi.pwroff(0)) {
-			WCN_DBG(FM_ALT | MAIN, "chip off fail\n");
-			goto out;
-		}
+	fm_low_ops.bi.pwrdownseq();
+	/* subsystem power off */
+	if (fm_low_ops.bi.pwroff(0)) {
+		WCN_DBG(FM_ALT | MAIN, "chip off fail\n");
+		goto out;
 	}
-	
 	/* prepare to reset */
 
 	/* wait 3s */
@@ -2480,16 +2386,6 @@ void fm_subsys_reset_work_func(unsigned long data)
 	g_fm_struct->mute = 0;
 	fm_low_ops.bi.mute(g_fm_struct->mute);
 
-	if(fm_low_ops.ri.rds_bci_get)
-	{
-		fm_timer_sys->init(fm_timer_sys, fm_timer_func, (unsigned long)g_fm_struct, fm_low_ops.ri.rds_bci_get(), 0);
-		WCN_DBG(FM_NTC | MAIN, "initial timer ok\n");
-	}
-	else
-	{
-		WCN_DBG(FM_NTC | MAIN, "initial timer fail!!!\n");
-	}
-
 	g_fm_struct->rds_on = 1;
 	fm_low_ops.ri.rds_onoff(g_fm_struct->pstRDSData, g_fm_struct->rds_on);
 
@@ -2498,7 +2394,6 @@ void fm_subsys_reset_work_func(unsigned long data)
  out:
 	fm_sys_state_set(g_fm_struct, FM_SUBSYS_RST_END);
 	fm_sys_state_set(g_fm_struct, FM_SUBSYS_RST_OFF);
-	g_fm_struct->wholechiprst = fm_true;
 
 	FM_UNLOCK(fm_ops_lock);
 	g_dbg_level = 0xfffffff5;
@@ -2635,7 +2530,6 @@ struct fm *fm_dev_init(fm_u32 arg)
 	fm->vcooff = FM_TX_VCO_OFF_DEFAULT;
 	fm->txpwrctl = FM_TX_PWR_CTRL_INVAL_DEFAULT;
 	fm->tx_pwr = FM_TX_PWR_LEVEL_MAX;
-	fm->wholechiprst = fm_true;
 	gps_rtc_info.err = 0;
 	gps_rtc_info.age = 0;
 	gps_rtc_info.drift = 0;

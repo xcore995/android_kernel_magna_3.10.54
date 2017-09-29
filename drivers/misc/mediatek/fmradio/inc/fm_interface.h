@@ -126,7 +126,6 @@ struct fm {
 	fm_u32 txpwrctl;	/* TX power contrl interval(s) */
 	fm_u32 tx_pwr;
 	fm_bool rdstx_on;	/* false:rds tx off, true:rds tx on */
-	fm_bool wholechiprst;
 	/* RDS data */
 	struct fm_flag_event *rds_event;	/* pointer to rds event */
 	struct rds_t *pstRDSData;	/* rds spec data buffer */
@@ -203,7 +202,6 @@ struct fm_basic_interface {
 	fm_s32(*fm_via_bt) (fm_bool flag);	/* fm over BT:1:enable,0:disable */
 	fm_s32(*set_search_th) (fm_s32 idx, fm_s32 val, fm_s32 reserve);
 	fm_s32(*get_aud_info) (fm_audio_info_t *data);
-	fm_s32 (*getfreq)(fm_u16 *freq);
 	/*tx function */
 	fm_s32(*tx_support) (fm_s32 *sup);
 	fm_s32(*rdstx_enable) (fm_s32 *flag);

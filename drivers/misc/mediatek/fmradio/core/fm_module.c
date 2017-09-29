@@ -51,9 +51,6 @@ static fm_s32 fm_cdev_setup(struct fm *fm);
 static fm_s32 fm_cdev_destroy(struct fm *fm);
 
 static long fm_ops_ioctl(struct file *filp, fm_u32 cmd, unsigned long arg);
-#ifdef CONFIG_COMPAT
-static long fm_ops_compat_ioctl(struct file * filp,fm_u32 cmd,unsigned long arg);
-#endif
 static loff_t fm_ops_lseek(struct file *filp, loff_t off, fm_s32 whence);
 static ssize_t fm_ops_read(struct file *filp, char *buf, size_t len, loff_t *off);
 static fm_s32 fm_ops_open(struct inode *inode, struct file *filp);
@@ -62,9 +59,6 @@ static fm_s32 fm_ops_flush(struct file *filp, fl_owner_t Id);
 static struct file_operations fm_ops = {
 	.owner = THIS_MODULE,
 	.unlocked_ioctl = fm_ops_ioctl,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl = fm_ops_compat_ioctl,
-#endif
 	.llseek = fm_ops_lseek,
 	.read = fm_ops_read,
 	.open = fm_ops_open,
@@ -86,23 +80,6 @@ static struct fm_scan_t parm = {
 	.sr_size = 0,
 	.sr.ch_rssi_buf = NULL,
 };
-
-#ifdef CONFIG_COMPAT
-static long fm_ops_compat_ioctl(struct file *filp, fm_u32 cmd, unsigned long arg)
-{
-	long ret;
-
-	WCN_DBG(FM_NTC | MAIN, "COMPAT %s---pid(%d)---cmd(0x%08x)---arg(0x%08x)\n", current->comm,
-		current->pid, cmd, (fm_u32) arg);
-
-	if(!filp->f_op || !filp->f_op->unlocked_ioctl)
-		return -ENOTTY;
-
-	ret = filp->f_op->unlocked_ioctl(filp, cmd, arg);
-
-	return ret;
-}
-#endif
 
 static long fm_ops_ioctl(struct file *filp, fm_u32 cmd, unsigned long arg)
 {
@@ -704,39 +681,6 @@ static long fm_ops_ioctl(struct file *filp, fm_u32 cmd, unsigned long arg)
 			break;
 		}
 
-    case FM_IOCTL_FM_SET_STATUS: {
-		fm_status_t fm_stat;
-        WCN_DBG(FM_DBG | MAIN, "FM_IOCTL_FM_SET_STATUS");
-		
-        if (copy_from_user(&fm_stat, (void*)arg, sizeof(fm_status_t))) {
-			ret = -EFAULT;
-			goto out;
-		}
-		
-		fm_set_stat(fm, fm_stat.which, fm_stat.stat);
-		
-        break;
-    }
-
-    case FM_IOCTL_FM_GET_STATUS: {
-		fm_status_t fm_stat;
-        WCN_DBG(FM_DBG | MAIN, "FM_IOCTL_FM_GET_STATUS");
-		
-        if (copy_from_user(&fm_stat, (void*)arg, sizeof(fm_status_t))) {
-			ret = -EFAULT;
-			goto out;
-		}
-		
-		fm_get_stat(fm, fm_stat.which, &fm_stat.stat);
-
-        if (copy_to_user((void*)arg, &fm_stat, sizeof(fm_status_t))) {
-            ret = -EFAULT;
-            goto out;
-        }
-		
-        break;
-    }
-
 	case FM_IOCTL_RDS_ONOFF:{
 			fm_u16 rdson_off = 0;
 			WCN_DBG(FM_NTC | MAIN, "FM_IOCTL_RDS_ONOFF start\n");
@@ -1042,8 +986,6 @@ static long fm_ops_ioctl(struct file *filp, fm_u32 cmd, unsigned long arg)
 				ret = -EFAULT;
 				goto out;
 			}
-
-			WCN_DBG(FM_DBG | MAIN, "fm_get_aud_info ret=%d\n", ret);
 			break;
 		}
     /***************************FM Tx function************************************/
@@ -1194,37 +1136,14 @@ static long fm_ops_ioctl(struct file *filp, fm_u32 cmd, unsigned long arg)
 			break;
 		}
 
-	case FM_IOCTL_GET_CUR_FREQ:
-	{
-		fm_u16 freq;
-		WCN_DBG(FM_NTC | MAIN, "......FM_IOCTL_GET_CUR_FREQ......\n");
-
-		ret = fm_read_freq_info(fm, &freq);
-		if(ret < 0){
-			WCN_DBG(FM_ERR | MAIN, "FM_IOCTL_GET_CUR_FREQ failed\n");
-			ret = -EFAULT;
-			goto out;
-		}
-
-		if(copy_to_user((void*)arg, &freq, sizeof(fm_u16))){
-			WCN_DBG(FM_ALT | MAIN, "copy_to_user error\n");
-			ret = -EFAULT;
-			goto out;
-		}		
-		break;
+	default:
+		ret = -EPERM;
 	}
-
-    default:
-        ret = -EPERM;
-    }
 
  out:
 	if (ret == -FM_EFW) {
-		if (fm_sys_state_get(fm) == FM_SUBSYS_RST_OFF) {
-			fm->wholechiprst = fm_false;
-			/* subsystem reset */
-			fm_subsys_reset(fm);
-		}
+		/* subsystem reset */
+		fm_subsys_reset(fm);
 	}
 
 	return ret;
@@ -1252,9 +1171,6 @@ static ssize_t fm_ops_read(struct file *filp, char *buf, size_t len, loff_t *off
 		WCN_DBG(FM_ALT | MAIN, "fm_read invalid fm pointer\n");
 		return 0;
 	}
-
-	WCN_DBG(FM_DBG | MAIN, "rds buf len=%zu\n", len);
-	WCN_DBG(FM_DBG | MAIN, "sizeof(rds_t)=%zu\n", sizeof(rds_t));
 
 	if (!buf || len < sizeof(rds_t)) {
 		WCN_DBG(FM_DBG | MAIN, "fm_read invliad buf\n");
@@ -1355,7 +1271,7 @@ static ssize_t fm_proc_read(struct file *file, char __user *buf, size_t count, l
 
 	pos += length;
 	*ppos = pos;
-	WCN_DBG(FM_NTC | MAIN, "Leave fm_proc_read. length = %zu\n", length);
+	WCN_DBG(FM_NTC | MAIN, "Leave fm_proc_read. length = %d\n", length);
 
 	return length;
 }
@@ -1429,8 +1345,8 @@ static ssize_t fm_proc_write(struct file *file, const char *buffer, size_t count
 }
 
 //#define FM_DEV_STATIC_ALLOC
-/* #define FM_DEV_MAJOR    193 */
-/*static int FM_major = FM_DEV_MAJOR; */	/* dynamic allocation */
+#define FM_DEV_MAJOR    193
+static int FM_major = FM_DEV_MAJOR;	/* dynamic allocation */
 
 static fm_s32 fm_cdev_setup(struct fm *fm)
 {

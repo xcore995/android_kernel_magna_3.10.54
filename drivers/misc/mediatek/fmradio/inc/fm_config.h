@@ -201,10 +201,6 @@ extern fm_s32 MT6620fm_cust_config_setup(const fm_s8 *filepath);
 extern fm_u16 MT6620fm_cust_config_fetch(enum fm_cust_cfg_op op_code);
 #endif
 #ifdef MT6627_FM
-/*                                                                       */
-extern fm_cust_cfg mt6627_fm_config;
-extern fm_s32 MT6627fm_cust_config_print(fm_cust_cfg *cfg);
-/*                                                                       */
 extern fm_s32 MT6627fm_cust_config_setup(const fm_s8 *filepath);
 extern fm_u16 MT6627fm_cust_config_fetch(enum fm_cust_cfg_op op_code);
 #endif

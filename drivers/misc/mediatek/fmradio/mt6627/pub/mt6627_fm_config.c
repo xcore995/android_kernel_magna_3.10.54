@@ -35,7 +35,7 @@
 fm_cust_cfg mt6627_fm_config;
 /* static fm_s32 fm_index = 0; */
 
-fm_s32 MT6627fm_cust_config_print(fm_cust_cfg *cfg) /*                                                                       */
+static fm_s32 MT6627fm_cust_config_print(fm_cust_cfg *cfg)
 {
 	WCN_DBG(FM_NTC | MAIN, "MT6627 rssi_l:\t%d\n", cfg->rx_cfg.long_ana_rssi_th);
 	WCN_DBG(FM_NTC | MAIN, "MT6627 rssi_s:\t%d\n", cfg->rx_cfg.short_ana_rssi_th);
@@ -154,12 +154,6 @@ static fm_s32 MT6627fm_cust_config_file(const fm_s8 *filename, fm_cust_cfg *cfg)
 }
 
 #define MT6627_FM_CUST_CFG_PATH "etc/fmr/mt6627_fm_cust.cfg"
-/*                                                                       */
-#define MT6627_FM_CUST_CFG_PATH_Y90 "etc/fmr/mt6627_fm_cust_Y90.cfg"
-#define MT6627_FM_CUST_CFG_PATH_Y70 "etc/fmr/mt6627_fm_cust_Y70.cfg"
-#define MT6627_FM_CUST_CFG_PATH_Y50 "etc/fmr/mt6627_fm_cust_Y50.cfg"
-#define MT6627_FM_CUST_CFG_PATH_C90 "etc/fmr/mt6627_fm_cust_C90.cfg"
-/*                                                                       */
 fm_s32 MT6627fm_cust_config_setup(const fm_s8 *filepath)
 {
 	fm_s32 ret = 0;
@@ -171,26 +165,8 @@ fm_s32 MT6627fm_cust_config_setup(const fm_s8 *filepath)
 	MT6627fm_cust_config_print(&mt6627_fm_config);
 
 	if (!filepath) {
-/*                                                                       */
-		#if defined(TARGET_MT6582_Y90)
-			filep = MT6627_FM_CUST_CFG_PATH_Y90;
-			WCN_DBG(FM_NTC | MAIN, "MT6627_FM_CUST_CFG_PATH_Y90"); 
-		#elif defined(TARGET_MT6582_Y70)
-			filep = MT6627_FM_CUST_CFG_PATH_Y70;
-			WCN_DBG(FM_NTC | MAIN, "MT6627_FM_CUST_CFG_PATH_Y70");  
-		#elif defined(TARGET_MT6582_Y50)
-			filep = MT6627_FM_CUST_CFG_PATH_Y50;
-			WCN_DBG(FM_NTC | MAIN, "MT6627_FM_CUST_CFG_PATH_Y50");
-		#elif defined(TARGET_MT6732_C90)
-			filep = MT6627_FM_CUST_CFG_PATH_C90;
-			WCN_DBG(FM_NTC | MAIN, "MT6627_FM_CUST_CFG_PATH_C90");
-		#else
-			filep = MT6627_FM_CUST_CFG_PATH;
-			WCN_DBG(FM_NTC | MAIN, "MT6627_FM_CUST_CFG_PATH default");  
-		#endif
+		filep = MT6627_FM_CUST_CFG_PATH;
 	} else {
-		WCN_DBG(FM_NTC | MAIN, "MT6627_FM_CUST_CFG_PATH NULL");
-/*                                                                       */
 		memcpy(file_path, filepath, (strlen(filepath) > 50) ? 50 : strlen(filepath));
 		filep = file_path;
 		trim_path(&filep);

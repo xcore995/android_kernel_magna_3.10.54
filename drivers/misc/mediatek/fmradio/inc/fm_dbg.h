@@ -2,7 +2,8 @@
 #define __FM_DBG_H__
 
 /* #include <linux/kernel.h> //for printk() */
-#include <linux/xlog.h>
+/* #include <linux/xlog.h> */
+#include <linux/printk.h>
 
 /* DBG zone */
 #define BASE	4
@@ -56,7 +57,7 @@ extern fm_u32 g_dbg_level;
 #define WCN_DBG(flag, fmt, args...) \
     do { \
         if ((((flag)&0x0000000f) <= (g_dbg_level&0x0000000f)) && ((flag)&0xfffffff0) & g_dbg_level) { \
-		printk(KERN_DEBUG "[" #flag "]" fmt, ## args); \
+	    pr_debug("[" #flag "]" fmt, ## args); \
 	} \
     } while (0)
 #endif
@@ -127,56 +128,56 @@ extern fm_u32 g_dbg_level;
 #define FM_LOG_DBG(flag, fmt, args...) \
 	    do { \
                 if ((FM_DBG <= (g_dbg_level&0x0000000f)) && ((flag)&0xfffffff0) & g_dbg_level) { \
-			printk(KERN_DEBUG "[" #flag "]" fmt, ## args); \
+		    pr_debug("[" #flag "]" fmt, ## args); \
 		} \
 	    } while (0)
 
 #define FM_LOG_INF(flag, fmt, args...) \
 	    do { \
                 if ((FM_INF <= (g_dbg_level&0x0000000f)) && ((flag)&0xfffffff0) & g_dbg_level) { \
-			printk(KERN_INFO "[" #flag "]" fmt, ## args); \
+		    pr_info("[" #flag "]" fmt, ## args); \
 		} \
 	    } while (0)
 
 #define FM_LOG_NTC(flag, fmt, args...) \
 	    do { \
                 if ((FM_NTC <= (g_dbg_level&0x0000000f)) && ((flag)&0xfffffff0) & g_dbg_level) { \
-			printk(KERN_NOTICE "[" #flag "]" fmt, ## args); \
+		    pr_notice("[" #flag "]" fmt, ## args); \
 		} \
 	    } while (0)
 
 #define FM_LOG_WAR(flag, fmt, args...) \
 	    do { \
                 if ((FM_WAR <= (g_dbg_level&0x0000000f)) && ((flag)&0xfffffff0) & g_dbg_level) { \
-			printk(KERN_WARNING "[" #flag "]" fmt, ## args); \
+		    pr_warn("[" #flag "]" fmt, ## args); \
 		} \
 	    } while (0)
 
 #define FM_LOG_ERR(flag, fmt, args...) \
 	    do { \
                 if ((FM_ERR <= (g_dbg_level&0x0000000f)) && ((flag)&0xfffffff0) & g_dbg_level) { \
-			printk(KERN_ERR "[" #flag "]" fmt, ## args); \
+		    pr_err("[" #flag "]" fmt, ## args); \
 		} \
 	    } while (0)
 
 #define FM_LOG_CRT(flag, fmt, args...) \
 	    do { \
                 if ((FM_CRT <= (g_dbg_level&0x0000000f)) && ((flag)&0xfffffff0) & g_dbg_level) { \
-			printk(KERN_CRIT "[" #flag "]" fmt, ## args); \
+		    pr_crit("[" #flag "]" fmt, ## args); \
 		} \
 	    } while (0)
 
 #define FM_LOG_ALT(flag, fmt, args...) \
 	    do { \
                 if ((FM_ALT <= (g_dbg_level&0x0000000f)) && ((flag)&0xfffffff0) & g_dbg_level) { \
-			printk(KERN_ALERT "[" #flag "]" fmt, ## args); \
+		    pr_alert("[" #flag "]" fmt, ## args); \
 		} \
 	    } while (0)
 
 #define FM_LOG_EMG(flag, fmt, args...) \
 	    do { \
                 if ((FM_EMG <= (g_dbg_level&0x0000000f)) && ((flag)&0xfffffff0) & g_dbg_level) { \
-			printk(KERN_EMERG "[" #flag "]" fmt, ## args); \
+		    pr_emerg("[" #flag "]" fmt, ## args); \
 		} \
 	    } while (0)
 #endif

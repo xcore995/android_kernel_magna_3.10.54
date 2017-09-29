@@ -308,12 +308,6 @@ struct fm_search_threshold_t {
 	fm_s32 reserve;
 };
 
-typedef struct
-{
-	int which;
-	bool stat;
-}fm_status_t;
-
 /* init and deinit APIs */
 extern fm_s32 fm_env_setup(void);
 extern fm_s32 fm_env_destroy(void);
@@ -366,8 +360,6 @@ extern fm_s32 fm_is_dese_chan(struct fm *pfm, fm_u16 freq);
 extern fm_s32 fm_desense_check(struct fm *pfm, fm_u16 freq, fm_s32 rssi);
 extern fm_s32 fm_sys_state_get(struct fm *fmp);
 extern fm_s32 fm_sys_state_set(struct fm *fmp, fm_s32 sta);
-extern fm_s32 fm_set_stat(struct fm *fmp, int which, bool stat);
-extern fm_s32 fm_get_stat(struct fm *fmp, int which, bool *stat);
 extern fm_s32 fm_subsys_reset(struct fm *fm);
 
 extern fm_s32 fm_scan_new(struct fm *fm, struct fm_scan_t *parm);
@@ -385,7 +377,6 @@ extern fm_s32 fm_get_gps_rtc_info(struct fm_gps_rtc_info *src);
 extern fm_s32 fm_over_bt(struct fm *fm, fm_s32 flag);
 extern fm_s32 fm_set_search_th(struct fm *fm, struct fm_search_threshold_t parm);
 extern fm_s32 fm_get_aud_info(fm_audio_info_t *data);
-extern fm_s32 fm_read_freq_info(struct fm *fm, fm_u16 *freq);
 /*tx function*/
 extern fm_s32 fm_tx_support(struct fm *fm, fm_s32 *support);
 

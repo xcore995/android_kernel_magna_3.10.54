@@ -29,7 +29,6 @@
 #include "fm_stdlib.h"
 #include "fm_link.h"
 #if (defined(MT6620_FM) || defined(MT6628_FM) || defined(MT6627_FM) || defined(MT6630_FM))
-#include "osal_typedef.h"
 #include "stp_exp.h"
 #include "wmt_exp.h"
 static struct fm_link_event *link_event;
@@ -358,8 +357,8 @@ fm_s32 fm_event_parser(fm_s32(*rds_parser) (struct rds_rx_t *, fm_s32))
 				if ((RX_BUF_SIZE - i) < (sizeof(fm_u16) * FM_SCANTBL_SIZE)) {
 					WCN_DBG(FM_ALT | LINK,
 						"FM_SCAN_OPCODE err, [tblsize=%d],[bufsize=%d]\n",
-						(unsigned int)(sizeof(fm_u16) * FM_SCANTBL_SIZE),
-						(unsigned int)(RX_BUF_SIZE - i));
+						(sizeof(fm_u16) * FM_SCANTBL_SIZE),
+						(RX_BUF_SIZE - i));
 					FM_EVENT_SEND(link_event->ln_event, FLAG_SCAN_DONE);
 					return 0;
 				} else if ((length >= FM_CQI_BUF_SIZE)
