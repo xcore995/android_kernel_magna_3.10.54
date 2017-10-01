@@ -36,13 +36,6 @@ config MAX_DRAM_SIZE_SUPPORT
                 the memory size passed by the boot loader to the MAX_DRAM_SIZE_SUPPORT.
    		Notice that the maximum DRAM size is including the memory size
 	        reserved for the modem and the PMEM.
-
-config PRE_SELF_DIAGNOSIS
-    tristate "Support LGE self diagnosis for factory"
-    default n
-    depends on MACH_LGE
-    help
-     LGE self diagnosis
 endmenu
 
 

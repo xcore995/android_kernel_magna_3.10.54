@@ -499,6 +499,9 @@ static wake_reason_t spm_output_wake_reason(const wake_status_t *wakesta)
                    wakesta->debug_reg, wakesta->r13, wakesta->event_reg);
         return WR_PCM_ASSERT;
     }
+    spm_info("[SO] r12 = 0x%x, r13 = 0x%x, r7 = 0x%x (0x%x)\n",
+        wakesta->r12, wakesta->r13, spm_read(SPM_PCM_REG7_DATA), spm_read(SPM_POWER_ON_VAL1));
+
 
     return WR_WAKE_SRC;
 }

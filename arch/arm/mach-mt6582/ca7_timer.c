@@ -133,19 +133,6 @@ do {    \
     :"memory"); \
 } while (0)
 
-static inline void __cpuinit mt_arch_counter_set_user_access(void)
-{
-	u32 cntkctl;
-
-	asm volatile("mrc p15, 0, %0, c14, c1, 0" : "=r" (cntkctl));
-
-	/* disable user access to everything */
-	cntkctl &= ~((3 << 8) | (7 << 0));
-
-	/* Enable user access to the virtual counter and frequency. */
-	cntkctl |= (1 << 1);
-	asm volatile("mcr p15, 0, %0, c14, c1, 0" : : "r" (cntkctl));
-}
 
 #define CNTP_CTL_ENABLE     (1 << 0)
 #define CNTP_CTL_IMASK      (1 << 1)
@@ -319,8 +306,6 @@ static int __cpuinit generic_timer_setup(struct clock_event_device *clk)
                     0xf, 0x7fffffff);
 
     enable_percpu_irq(clk->irq, 0);
-
-	mt_arch_counter_set_user_access();
 
     return 0;
 }

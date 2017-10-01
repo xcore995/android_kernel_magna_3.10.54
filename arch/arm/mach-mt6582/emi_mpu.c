@@ -34,7 +34,6 @@ static struct work_struct emi_mpu_work;
 static struct workqueue_struct * emi_mpu_workqueue = NULL;
 
 static unsigned int vio_addr;
-static unsigned int org_mpup, org_mpuq, org_mpur, org_mpuy, org_mpus, org_mput;
 
 struct mst_tbl_entry
 {
@@ -298,12 +297,12 @@ static irqreturn_t mpu_violation_irq(int irq, void *dev_id)
     printk(KERN_CRIT "[EMI MPU] Debug info end------------------------------------------\n");
     
 #ifdef CONFIG_MTK_AEE_FEATURE
-	printk(KERN_CRIT "[EMI MPU] org_mpup=0x%x, org_mpuq=0x%x, org_mpur=0x%x, org_mpuy=0x%x, org_mpus=0x%x, org_mput=0x%x\n",
-	           org_mpup, org_mpuq, org_mpur, org_mpuy, org_mpus, org_mput);	   
-    //aee_kernel_exception("EMI MPU", "EMI MPU violation.\nEMP_MPUS = 0x%x, EMI_MPUT = 0x%x, EMI_MPU(PQR).\n", dbg_s, dbg_t+EMI_PHY_OFFSET, dbg_pqry);
-    //if((wr_vio != 0) || ((dbg_s & 0x7) != 0)) 
-    if(wr_vio != 0) 
-        aee_kernel_exception("EMI MPU", "EMI MPU violation.\nEMP_MPUS = 0x%x, EMI_MPUT = 0x%x, module is %s.\n", dbg_s, dbg_t+EMI_PHY_OFFSET, master_name);    
+    /*FIXME: skip ca17-read violation to trigger root-cause KE. Remove it before E2 QC*/
+    if (0 != dbg_s)
+    {
+        //aee_kernel_exception("EMI MPU", "EMI MPU violation.\nEMI_MPUS = 0x%x, EMI_MPUT = 0x%x, EMI_MPU(PQR).\n", dbg_s, dbg_t+EMI_PHY_OFFSET, dbg_pqry);
+        aee_kernel_exception("EMI MPU", "EMI MPU violation.\nEMI_MPUS = 0x%x, EMI_MPUT = 0x%x, module is %s.\n", dbg_s, dbg_t+EMI_PHY_OFFSET, master_name);    
+    }
 #endif
 
     __clear_emi_mpu_vio();
@@ -890,19 +889,17 @@ static int __init emi_mpu_mod_init(void)
   
     spin_lock_init(&emi_mpu_lock);
     
-    org_mpup = readl(IOMEM(EMI_MPUP));
-	printk(KERN_CRIT "[EMI MPU] EMI_MPUP = 0x%x\n", org_mpup);
-	org_mpuq = readl(IOMEM(EMI_MPUQ));
-	printk(KERN_CRIT "[EMI MPU] EMI_MPUQ = 0x%x\n", org_mpuq);
-	org_mpur = readl(IOMEM(EMI_MPUR));
-	printk(KERN_CRIT "[EMI MPU] EMI_MPUR = 0x%x\n", org_mpur);
-	org_mpuy = readl(IOMEM(EMI_MPUY));
-	printk(KERN_CRIT "[EMI MPU] EMI_MPUY = 0x%x\n", org_mpuy);
-	org_mpus = readl(IOMEM(EMI_MPUS));
-	printk(KERN_CRIT "[EMI MPU] EMI_MPUS = 0x%x\n", org_mpus);
-	org_mput = readl(IOMEM(EMI_MPUT));
-	printk(KERN_CRIT "[EMI MPU] EMI_MPUT = 0x%x\n", org_mput);
-    
+    printk(KERN_CRIT "[EMI MPU] EMI_MPUP = 0x%x \n", readl(IOMEM(EMI_MPUP)));
+    printk(KERN_CRIT "[EMI MPU] EMI_MPUQ = 0x%x \n", readl(IOMEM(EMI_MPUQ)));
+    printk(KERN_CRIT "[EMI MPU] EMI_MPUR = 0x%x \n", readl(IOMEM(EMI_MPUR)));
+    printk(KERN_CRIT "[EMI MPU] EMI_MPUY = 0x%x \n", readl(IOMEM(EMI_MPUY)));
+
+    printk(KERN_CRIT "[EMI MPU] EMI_MPUS = 0x%x \n", readl(IOMEM(EMI_MPUS)));
+    printk(KERN_CRIT "[EMI MPU] EMI_MPUT = 0x%x \n", readl(IOMEM(EMI_MPUT)));
+
+    printk(KERN_CRIT "[EMI MPU] EMI_CHKER = 0x%x \n", readl(IOMEM(EMI_CHKER)));
+    printk(KERN_CRIT "[EMI MPU] EMI_CHKER_ADR = 0x%x \n", readl(IOMEM(EMI_CHKER_ADR)));
+	
     __clear_emi_mpu_vio();
 
 
